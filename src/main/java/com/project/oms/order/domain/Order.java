@@ -1,10 +1,16 @@
 package com.project.oms.order.domain;
 
 import jakarta.persistence.*;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
 
 import java.math.BigDecimal;
 import java.util.UUID;
 
+@Entity
+@Table(name = "orders")
+@NoArgsConstructor
+@Getter
 public class Order {
     @Id
     @GeneratedValue
