@@ -12,7 +12,6 @@ import java.util.UUID;
 @Table(name = "orders")
 @NoArgsConstructor
 @Getter
-@Setter
 public class Order {
     @Id
     @GeneratedValue
