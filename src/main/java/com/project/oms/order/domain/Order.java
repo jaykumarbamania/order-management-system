@@ -3,6 +3,7 @@ package com.project.oms.order.domain;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
+import lombok.Setter;
 
 import java.math.BigDecimal;
 import java.util.UUID;
@@ -11,6 +12,7 @@ import java.util.UUID;
 @Table(name = "orders")
 @NoArgsConstructor
 @Getter
+@Setter
 public class Order {
     @Id
     @GeneratedValue
