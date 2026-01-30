@@ -5,8 +5,12 @@ import com.project.oms.inventory.events.InventoryFailedEvent;
 import com.project.oms.inventory.events.InventoryReservedEvent;
 import com.project.oms.order.domain.Order;
 import com.project.oms.order.domain.OrderStatus;
+import com.project.oms.order.events.OrderCancelledEvent;
+import com.project.oms.order.events.OrderConfirmedEvent;
 import com.project.oms.order.events.OrderCreatedEvent;
 import com.project.oms.order.repository.OrderRepository;
+import com.project.oms.payment.events.PaymentFailedEvent;
+import com.project.oms.payment.events.PaymentSuccessEvent;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.event.EventListener;
@@ -74,5 +78,42 @@ public class OrderService {
         orderRepository.save(order);
 
         log.info("Order cancelled due to inventory failure for orderId={}", orderId);
+    }
+
+    @EventListener
+    @Transactional
+    public void handlePaymentSuccess(PaymentSuccessEvent event) {
+        UUID orderId = event.getOrderId();
+        log.info("Order received PaymentSuccessEvent for orderId={}", orderId);
+
+        Order order = orderRepository.findById(orderId)
+                .orElseThrow(() -> new IllegalStateException("Order Not found"));
+
+        order.transitionTo(OrderStatus.PAYMENT_SUCCESS);
+        order.transitionTo(OrderStatus.CONFIRMED);
+
+        orderRepository.save(order);
+
+        log.info("Order confirmed for orderId={}", orderId);
+
+        eventPublisher.publish(new OrderConfirmedEvent(orderId));
+    }
+
+    @EventListener
+    @Transactional
+    public void handlePaymentFailure(PaymentFailedEvent event) {
+        UUID orderId = event.getOrderId();
+        log.info("Order received PaymentFailedEvent for orderId={}, reason : {}", orderId, event.getReason());
+
+        Order order = orderRepository.findById(orderId)
+                .orElseThrow(() -> new IllegalStateException("Order Not found"));
+
+        order.transitionTo(OrderStatus.CANCELLED);
+
+        orderRepository.save(order);
+
+        log.info("Order cancelled due to payment failure for orderId={}", orderId);
+
+        eventPublisher.publish(new OrderCancelledEvent(orderId, event.getReason()));
     }
 }
