@@ -1,5 +1,7 @@
 package com.project.oms.order.controller;
 
+import com.project.oms.common.idempotency.IdempotencyService;
+import com.project.oms.common.utils.JsonUtils;
 import com.project.oms.order.controller.request.CancelOrderRequest;
 import com.project.oms.order.controller.request.CreateOrderRequest;
 import com.project.oms.order.controller.response.OrderResponse;
@@ -23,21 +25,31 @@ import java.util.UUID;
 public class OrderController {
 
     private final OrderService orderService;
+    private final IdempotencyService idempotencyService;
 
     @PostMapping
+    @ResponseStatus(HttpStatus.CREATED)
     public ResponseEntity<OrderResponse> createOrder(
-            @RequestBody CreateOrderRequest request
+            @RequestHeader(value = "Idempotency-Key", required = false) String idempotencyKey,
+            @RequestBody @Valid CreateOrderRequest request
     ) {
-        log.info("Received create order request for userId={}", request.userId());
-        Order order = orderService.
-                createOrder(request.userId(),request.totalAmount());
+        log.info("Create order request received, userId={}, idemKey={}",
+                request.userId(), idempotencyKey);
 
-        log.info("Order created successfully with orderId={}", order.getId());
+        if (idempotencyKey != null) {
+            return handleIdempotentCreate(idempotencyKey, request);
+        }
 
-        return ResponseEntity
-                .accepted()
+        Order order = orderService.createOrder(
+                request.userId(),
+                request.totalAmount()
+        );
+
+        return ResponseEntity.status(HttpStatus.CREATED)
                 .body(mapToResponse(order));
     }
+
+
 
     @GetMapping("/{orderId}")
     public OrderResponse getOrder(@PathVariable UUID orderId) {
@@ -47,7 +59,7 @@ public class OrderController {
         return mapToResponse(order);
     }
 
-    @GetMapping
+    @GetMapping()
     public List<OrderResponse> getOrdersByUser(@RequestParam UUID userId) {
         log.info("Fetching orders for userId={}", userId);
 
@@ -55,15 +67,6 @@ public class OrderController {
                 .stream()
                 .map(this::mapToResponse)
                 .toList();
-    }
-
-    private OrderResponse mapToResponse(Order order) {
-        return new OrderResponse(
-                order.getId(),
-                order.getUserId(),
-                order.getTotalAmount(),
-                order.getStatus()
-        );
     }
 
     @PostMapping("/{orderId}/cancel")
@@ -76,6 +79,50 @@ public class OrderController {
 
         String reason = request != null ? request.reason() : "User requested cancellation";
         orderService.cancelOrder(orderId, reason);
+    }
+
+    private OrderResponse mapToResponse(Order order) {
+        return new OrderResponse(
+                order.getId(),
+                order.getUserId(),
+                order.getTotalAmount(),
+                order.getStatus()
+        );
+    }
+
+    private ResponseEntity<OrderResponse> handleIdempotentCreate(
+            String idempotencyKey,
+            CreateOrderRequest request
+    ) {
+        return idempotencyService.find(idempotencyKey)
+                .map(record -> {
+                    log.info("Idempotent hit for key={}", idempotencyKey);
+
+                    OrderResponse response =
+                            JsonUtils.fromJson(record.getResponseBody(), OrderResponse.class);
+
+                    return ResponseEntity
+                            .status(record.getStatusCode())
+                            .body(response);
+                })
+                .orElseGet(() -> {
+                    Order order = orderService.createOrder(
+                            request.userId(),
+                            request.totalAmount()
+                    );
+
+                    OrderResponse response = mapToResponse(order);
+
+                    idempotencyService.save(
+                            idempotencyKey,
+                            JsonUtils.toJson(response),
+                            HttpStatus.CREATED.value()
+                    );
+
+                    return ResponseEntity
+                            .status(HttpStatus.CREATED)
+                            .body(response);
+                });
     }
 
 }

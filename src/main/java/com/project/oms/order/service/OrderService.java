@@ -1,5 +1,6 @@
 package com.project.oms.order.service;
 
+import com.project.oms.common.exceptions.ResourceNotFoundException;
 import com.project.oms.infrastructure.eventbus.DomainEventPublisher;
 import com.project.oms.inventory.events.InventoryFailedEvent;
 import com.project.oms.inventory.events.InventoryReservedEvent;
@@ -57,7 +58,7 @@ public class OrderService {
 
     public Order getOrder(UUID orderId) {
         return orderRepository.findById(orderId)
-                .orElseThrow(() -> new IllegalArgumentException("Order not found"));
+                .orElseThrow(() -> new ResourceNotFoundException("Order not found"));
     }
 
     @TransactionalEventListener
@@ -67,7 +68,7 @@ public class OrderService {
         log.info("Order Received InventoryReservedEvent with orderId : {}",orderId);
 
         Order existingOrder = orderRepository.findById(orderId)
-                .orElseThrow(() -> new IllegalStateException("Order Not Found"));
+                .orElseThrow(() -> new ResourceNotFoundException("Order Not Found"));
 
         existingOrder.transitionTo(OrderStatus.INVENTORY_RESERVED);
 
@@ -84,7 +85,7 @@ public class OrderService {
                 orderId, event.getReason());
 
         Order order = orderRepository.findById(orderId)
-                .orElseThrow(() -> new IllegalStateException("Order not found"));
+                .orElseThrow(() -> new ResourceNotFoundException("Order not found"));
 
         order.transitionTo(OrderStatus.CANCELLED);
         orderRepository.save(order);
@@ -99,7 +100,7 @@ public class OrderService {
         log.info("Order received PaymentSuccessEvent for orderId={}", orderId);
 
         Order order = orderRepository.findById(orderId)
-                .orElseThrow(() -> new IllegalStateException("Order Not found"));
+                .orElseThrow(() -> new ResourceNotFoundException("Order Not found"));
 
         order.transitionTo(OrderStatus.PAYMENT_SUCCESS);
         order.transitionTo(OrderStatus.CONFIRMED);
@@ -118,7 +119,7 @@ public class OrderService {
         log.info("Order received PaymentFailedEvent for orderId={}, reason : {}", orderId, event.getReason());
 
         Order order = orderRepository.findById(orderId)
-                .orElseThrow(() -> new IllegalStateException("Order Not found"));
+                .orElseThrow(() -> new ResourceNotFoundException("Order Not found"));
 
         order.transitionTo(OrderStatus.CANCELLED);
 
@@ -134,7 +135,7 @@ public class OrderService {
         log.info("Cancel order requested for orderId={}, reason={}", orderId, reason);
 
         Order order = orderRepository.findById(orderId)
-                .orElseThrow(() -> new IllegalArgumentException("Order not found"));
+                .orElseThrow(() -> new ResourceNotFoundException("Order not found"));
 
         order.transitionTo(OrderStatus.CANCELLED);
         orderRepository.save(order);
