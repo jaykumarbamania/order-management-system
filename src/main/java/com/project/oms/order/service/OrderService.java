@@ -15,9 +15,12 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.event.TransactionalEventListener;
 
 import java.math.BigDecimal;
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -48,8 +51,17 @@ public class OrderService {
         return saveOrder;
     }
 
-    @EventListener
-    @Transactional
+    public List<Order> getOrdersForUser(UUID userId) {
+        return orderRepository.findByUserId(userId);
+    }
+
+    public Order getOrder(UUID orderId) {
+        return orderRepository.findById(orderId)
+                .orElseThrow(() -> new IllegalArgumentException("Order not found"));
+    }
+
+    @TransactionalEventListener
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
     public void handleInventoryReserved(InventoryReservedEvent event) {
         UUID orderId = event.getOrderId();
         log.info("Order Received InventoryReservedEvent with orderId : {}",orderId);
@@ -64,8 +76,8 @@ public class OrderService {
         log.info("Order status updated to INVENTORY_RESERVED for orderId={}", orderId);
     }
 
-    @EventListener
-    @Transactional
+    @TransactionalEventListener
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
     public void handleInventoryFailed(InventoryFailedEvent event) {
         UUID orderId = event.getOrderId();
         log.warn("Order received InventoryFailedEvent for orderId={}, reason={}",
@@ -80,8 +92,8 @@ public class OrderService {
         log.info("Order cancelled due to inventory failure for orderId={}", orderId);
     }
 
-    @EventListener
-    @Transactional
+    @TransactionalEventListener
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
     public void handlePaymentSuccess(PaymentSuccessEvent event) {
         UUID orderId = event.getOrderId();
         log.info("Order received PaymentSuccessEvent for orderId={}", orderId);
@@ -99,8 +111,8 @@ public class OrderService {
         eventPublisher.publish(new OrderConfirmedEvent(orderId));
     }
 
-    @EventListener
-    @Transactional
+    @TransactionalEventListener
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
     public void handlePaymentFailure(PaymentFailedEvent event) {
         UUID orderId = event.getOrderId();
         log.info("Order received PaymentFailedEvent for orderId={}, reason : {}", orderId, event.getReason());
@@ -116,4 +128,22 @@ public class OrderService {
 
         eventPublisher.publish(new OrderCancelledEvent(orderId, event.getReason()));
     }
+
+    @Transactional
+    public void cancelOrder(UUID orderId, String reason) {
+        log.info("Cancel order requested for orderId={}, reason={}", orderId, reason);
+
+        Order order = orderRepository.findById(orderId)
+                .orElseThrow(() -> new IllegalArgumentException("Order not found"));
+
+        order.transitionTo(OrderStatus.CANCELLED);
+        orderRepository.save(order);
+
+        log.info("Order cancelled successfully for orderId={}", orderId);
+
+        eventPublisher.publish(
+                new OrderCancelledEvent(orderId, reason)
+        );
+    }
+
 }
