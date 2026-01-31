@@ -1,13 +1,16 @@
 package com.project.oms.order.controller;
 
+import com.project.oms.order.controller.request.CancelOrderRequest;
 import com.project.oms.order.controller.request.CreateOrderRequest;
 import com.project.oms.order.controller.response.OrderResponse;
 import com.project.oms.order.domain.Order;
+import com.project.oms.order.domain.OrderStatus;
 import com.project.oms.order.service.OrderService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -22,18 +25,18 @@ public class OrderController {
     private final OrderService orderService;
 
     @PostMapping
-    @ResponseStatus(HttpStatus.CREATED)
-    public OrderResponse createOrder(@RequestBody @Valid CreateOrderRequest request) {
+    public ResponseEntity<OrderResponse> createOrder(
+            @RequestBody CreateOrderRequest request
+    ) {
         log.info("Received create order request for userId={}", request.userId());
-
-        Order order = orderService.createOrder(
-                request.userId(),
-                request.totalAmount()
-        );
+        Order order = orderService.
+                createOrder(request.userId(),request.totalAmount());
 
         log.info("Order created successfully with orderId={}", order.getId());
 
-        return mapToResponse(order);
+        return ResponseEntity
+                .accepted()
+                .body(mapToResponse(order));
     }
 
     @GetMapping("/{orderId}")
@@ -62,4 +65,17 @@ public class OrderController {
                 order.getStatus()
         );
     }
+
+    @PostMapping("/{orderId}/cancel")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void cancelOrder(
+            @PathVariable UUID orderId,
+            @RequestBody(required = false) CancelOrderRequest request
+    ) {
+        log.info("Received cancel request for orderId={}", orderId);
+
+        String reason = request != null ? request.reason() : "User requested cancellation";
+        orderService.cancelOrder(orderId, reason);
+    }
+
 }

@@ -128,4 +128,22 @@ public class OrderService {
 
         eventPublisher.publish(new OrderCancelledEvent(orderId, event.getReason()));
     }
+
+    @Transactional
+    public void cancelOrder(UUID orderId, String reason) {
+        log.info("Cancel order requested for orderId={}, reason={}", orderId, reason);
+
+        Order order = orderRepository.findById(orderId)
+                .orElseThrow(() -> new IllegalArgumentException("Order not found"));
+
+        order.transitionTo(OrderStatus.CANCELLED);
+        orderRepository.save(order);
+
+        log.info("Order cancelled successfully for orderId={}", orderId);
+
+        eventPublisher.publish(
+                new OrderCancelledEvent(orderId, reason)
+        );
+    }
+
 }
