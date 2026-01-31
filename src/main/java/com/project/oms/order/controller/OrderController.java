@@ -47,7 +47,7 @@ public class OrderController {
         return mapToResponse(order);
     }
 
-    @GetMapping
+    @GetMapping()
     public List<OrderResponse> getOrdersByUser(@RequestParam UUID userId) {
         log.info("Fetching orders for userId={}", userId);
 
