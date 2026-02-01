@@ -1,6 +1,7 @@
 package com.project.oms.infrastructure.eventbus;
 
 import com.project.oms.common.events.DomainEvent;
+import com.project.oms.common.events.EventEnvelope;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Component;
@@ -14,18 +15,18 @@ public class SpringDomainEventPublisher implements DomainEventPublisher {
     private final ApplicationEventPublisher applicationEventPublisher;
 
     @Override
-    public void publish(DomainEvent event) {
+    public void publish(EventEnvelope<?> envelope) {
         if(TransactionSynchronizationManager.isActualTransactionActive()) {
             TransactionSynchronizationManager.registerSynchronization(
                     new TransactionSynchronization() {
                         @Override
                         public void afterCommit() {
-                            applicationEventPublisher.publishEvent(event);
+                            applicationEventPublisher.publishEvent(envelope);
                         }
                     }
             );
         } else {
-            applicationEventPublisher.publishEvent(event);
+            applicationEventPublisher.publishEvent(envelope);
         }
     }
 }
