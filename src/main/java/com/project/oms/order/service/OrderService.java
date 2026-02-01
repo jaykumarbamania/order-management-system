@@ -1,6 +1,8 @@
 package com.project.oms.order.service;
 
+import com.project.oms.common.events.EventEnvelope;
 import com.project.oms.common.exceptions.ResourceNotFoundException;
+import com.project.oms.common.vo.AggregateType;
 import com.project.oms.infrastructure.eventbus.DomainEventPublisher;
 import com.project.oms.inventory.events.InventoryFailedEvent;
 import com.project.oms.inventory.events.InventoryReservedEvent;
@@ -41,11 +43,11 @@ public class OrderService {
         Order saveOrder = orderRepository.save(order);
 
         eventPublisher.publish(
-                new OrderCreatedEvent(
+                EventEnvelope.of(AggregateType.ORDER,saveOrder.getId(),new OrderCreatedEvent(
                         saveOrder.getId(),
                         saveOrder.getUserId(),
                         saveOrder.getTotalAmount()
-                )
+                ))
         );
         log.info("Order Created Successfully with orderId : {}",order.getId());
 
@@ -109,7 +111,10 @@ public class OrderService {
 
         log.info("Order confirmed for orderId={}", orderId);
 
-        eventPublisher.publish(new OrderConfirmedEvent(orderId));
+        eventPublisher.publish(
+                EventEnvelope.of(AggregateType.ORDER,orderId,new OrderConfirmedEvent(orderId))
+        );
+
     }
 
     @TransactionalEventListener
@@ -127,7 +132,10 @@ public class OrderService {
 
         log.info("Order cancelled due to payment failure for orderId={}", orderId);
 
-        eventPublisher.publish(new OrderCancelledEvent(orderId, event.getReason()));
+        eventPublisher.publish(
+                EventEnvelope.of(AggregateType.ORDER,orderId,new OrderCancelledEvent(orderId,event.getReason()))
+        );
+
     }
 
     @Transactional
@@ -143,7 +151,7 @@ public class OrderService {
         log.info("Order cancelled successfully for orderId={}", orderId);
 
         eventPublisher.publish(
-                new OrderCancelledEvent(orderId, reason)
+                EventEnvelope.of(AggregateType.ORDER,orderId,new OrderCancelledEvent(orderId,reason))
         );
     }
 

@@ -1,5 +1,7 @@
 package com.project.oms.payment.service;
 
+import com.project.oms.common.events.EventEnvelope;
+import com.project.oms.common.vo.AggregateType;
 import com.project.oms.infrastructure.eventbus.DomainEventPublisher;
 import com.project.oms.inventory.events.InventoryReservedEvent;
 import com.project.oms.payment.domain.Payment;
@@ -9,11 +11,9 @@ import com.project.oms.payment.events.PaymentSuccessEvent;
 import com.project.oms.payment.repository.PaymentRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.transaction.event.TransactionPhase;
 import org.springframework.transaction.event.TransactionalEventListener;
 
 import java.math.BigDecimal;
@@ -44,7 +44,10 @@ public class PaymentService {
 
             log.info("Payment successful for orderId={}", orderId);
 
-            eventPublisher.publish(new PaymentSuccessEvent(orderId));
+            eventPublisher.publish(
+                    EventEnvelope.of(AggregateType.PAYMENT,orderId,new PaymentSuccessEvent(orderId))
+            );
+
         } else {
             paymentRepository.save(
                     new Payment(orderId, BigDecimal.valueOf(500), PaymentStatus.FAILED)
@@ -53,7 +56,7 @@ public class PaymentService {
             log.warn("Payment failed for orderId={}", orderId);
 
             eventPublisher.publish(
-                    new PaymentFailedEvent(orderId, "Payment gateway failure")
+                    EventEnvelope.of(AggregateType.PAYMENT,orderId,new PaymentFailedEvent(orderId,"Payment gateway failure"))
             );
         }
     }
