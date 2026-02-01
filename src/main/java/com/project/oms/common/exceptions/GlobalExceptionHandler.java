@@ -31,11 +31,17 @@ public class GlobalExceptionHandler {
         return ResponseEntity.status(HttpStatus.NOT_FOUND).body(response);
     }
 
-    @ExceptionHandler(Exception.class)
+    @ExceptionHandler(RuntimeException.class)
     public ResponseEntity<ErrorResponse> handleGenericException(
             Exception ex,
             HttpServletRequest request
-    ) {
+    ) throws Exception {
+        log.error("Unhandled exception", ex);
+
+        if (request.getRequestURI().startsWith("/v3/api-docs")) {
+            throw ex; // let springdoc handle it
+        }
+
         log.error("Unhandled exception", ex);
 
         ErrorResponse response = new ErrorResponse(
@@ -50,4 +56,6 @@ public class GlobalExceptionHandler {
                 .status(HttpStatus.INTERNAL_SERVER_ERROR)
                 .body(response);
     }
+
+
 }
