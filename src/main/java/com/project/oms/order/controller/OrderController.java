@@ -15,6 +15,13 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.media.Schema;
+
+
 import java.util.List;
 import java.util.UUID;
 
@@ -22,13 +29,19 @@ import java.util.UUID;
 @RestController
 @RequestMapping("/api/orders")
 @RequiredArgsConstructor
+@Tag(name = "Orders", description = "Order management APIs")
 public class OrderController {
 
     private final OrderService orderService;
     private final IdempotencyService idempotencyService;
 
+    @Operation(
+            summary = "Create a new order",
+            description = "Creates an order and starts async processing (inventory + payment)"
+    )
+    @ApiResponse(responseCode = "201", description = "Order created")
+    @ApiResponse(responseCode = "400", description = "Invalid request")
     @PostMapping
-    @ResponseStatus(HttpStatus.CREATED)
     public ResponseEntity<OrderResponse> createOrder(
             @RequestHeader(value = "Idempotency-Key", required = false) String idempotencyKey,
             @RequestBody @Valid CreateOrderRequest request
@@ -50,7 +63,9 @@ public class OrderController {
     }
 
 
-
+    @Operation(summary = "Get order by ID")
+    @ApiResponse(responseCode = "200", description = "Order found")
+    @ApiResponse(responseCode = "404", description = "Order not found")
     @GetMapping("/{orderId}")
     public OrderResponse getOrder(@PathVariable UUID orderId) {
         log.info("Fetching order with orderId={}", orderId);
@@ -69,6 +84,9 @@ public class OrderController {
                 .toList();
     }
 
+    @Operation(summary = "Cancel an order")
+    @ApiResponse(responseCode = "204", description = "Order cancelled")
+    @ApiResponse(responseCode = "409", description = "Invalid order state")
     @PostMapping("/{orderId}/cancel")
     @ResponseStatus(HttpStatus.NO_CONTENT)
     public void cancelOrder(
