@@ -1,5 +1,7 @@
 package com.project.oms.inventory.service;
 
+import com.project.oms.common.events.EventEnvelope;
+import com.project.oms.common.vo.AggregateType;
 import com.project.oms.infrastructure.eventbus.DomainEventPublisher;
 import com.project.oms.inventory.domain.InventoryItem;
 import com.project.oms.inventory.events.InventoryReservedEvent;
@@ -41,7 +43,7 @@ public class InventoryService {
             inventoryRepository.save(item);
 
             eventPublisher.publish(
-                    new InventoryReservedEvent(event.getOrderId())
+                    EventEnvelope.of(AggregateType.INVENTORY,event.getOrderId(),new InventoryReservedEvent(event.getOrderId()))
             );
         }
 

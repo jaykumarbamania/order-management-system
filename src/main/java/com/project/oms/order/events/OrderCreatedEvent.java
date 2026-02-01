@@ -1,5 +1,7 @@
 package com.project.oms.order.events;
 
+import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import com.project.oms.common.events.DomainEvent;
 
 import java.math.BigDecimal;
@@ -11,7 +13,12 @@ public class OrderCreatedEvent extends DomainEvent {
     private final UUID userId;
     private final BigDecimal totalAmount;
 
-    public OrderCreatedEvent(UUID orderId, UUID userId, BigDecimal totalAmount) {
+    @JsonCreator
+    public OrderCreatedEvent(
+            @JsonProperty("orderId") UUID orderId,
+            @JsonProperty("userId") UUID userId,
+            @JsonProperty("totalAmount") BigDecimal totalAmount
+    ) {
         this.orderId = orderId;
         this.userId = userId;
         this.totalAmount = totalAmount;

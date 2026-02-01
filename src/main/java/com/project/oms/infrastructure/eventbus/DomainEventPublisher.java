@@ -1,7 +1,7 @@
 package com.project.oms.infrastructure.eventbus;
 
-import com.project.oms.common.events.DomainEvent;
+import com.project.oms.common.events.EventEnvelope;
 
 public interface DomainEventPublisher {
-    void publish(DomainEvent event);
+    void publish(EventEnvelope<?> envelope);
 }

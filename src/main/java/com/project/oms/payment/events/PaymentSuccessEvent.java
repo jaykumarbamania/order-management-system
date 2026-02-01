@@ -1,5 +1,7 @@
 package com.project.oms.payment.events;
 
+import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import com.project.oms.common.events.DomainEvent;
 
 import java.util.UUID;
@@ -8,7 +10,8 @@ public class PaymentSuccessEvent extends DomainEvent {
 
     private final UUID orderId;
 
-    public PaymentSuccessEvent(UUID orderId) {
+    @JsonCreator
+    public PaymentSuccessEvent(@JsonProperty("orderId") UUID orderId) {
         this.orderId = orderId;
     }
 
