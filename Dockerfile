@@ -15,12 +15,15 @@ RUN mvn clean package -DskipTests
 # Runtime stage
 FROM eclipse-temurin:21-jre
 WORKDIR /app
-
-# security: non-root user
-RUN useradd -m appuser
-USER appuser
-
-COPY --from=build /app/target/order-management-system-*.jar app.jar
-
+COPY --from=build /app/target/*.jar app.jar
 EXPOSE 8080
 ENTRYPOINT ["java","-jar","app.jar"]
+
+## security: non-root user
+#RUN useradd -m appuser
+#USER appuser
+#
+#COPY --from=build /app/target/order-management-system-*.jar app.jar
+#
+#EXPOSE 8080
+#ENTRYPOINT ["java","-jar","app.jar"]

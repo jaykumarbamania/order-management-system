@@ -2,22 +2,39 @@ spring:
   application:
     name: order-management-system
 
+
+#  datasource:
+#    url: jdbc:postgresql://localhost:5432/oms
+#    username: postgres
+#    password: 161199
+
   datasource:
-    url: jdbc:postgresql://localhost:5432/oms
-    username: postgres
-    password: 161199
+    url: ${DB_URL}
+    username: ${DB_USERNAME}
+    password: ${DB_PASSWORD}
 
   jpa:
     hibernate:
-      ddl-auto: create-drop
+      ddl-auto: update
     show-sql: true
     properties:
       hibernate:
         format_sql: true
 
+  flyway:
+    enabled: false
 springdoc:
   override-with-generic-response: false
 
+server:
+  port: 8080
+
+flyway:
+  ignore-unsupported-database: true
+
+outbox:
+  poll:
+    delay: 60000
 
 #logging:
 #  level:
