@@ -15,26 +15,34 @@ spring:
 
   jpa:
     hibernate:
-      ddl-auto: update
+      ddl-auto: validate
     show-sql: true
     properties:
       hibernate:
         format_sql: true
 
   flyway:
-    enabled: false
+    enabled: true
+    baseline-on-migrate: true
+    locations: classpath:db/migration
+
 springdoc:
   override-with-generic-response: false
 
 server:
   port: 8080
 
-flyway:
-  ignore-unsupported-database: true
-
 outbox:
   poll:
     delay: 60000
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+
+
 
 #logging:
 #  level:
