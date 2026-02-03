@@ -21,7 +21,7 @@ public class OutboxEventProcessor {
     private final OutboxRepository repository;
     private final ApplicationEventPublisher springPublisher;
 
-    @Scheduled(fixedDelay = 5000)
+    @Scheduled(fixedDelayString = "${outbox.poll.delay:5000}")
     @Transactional
     public void publishOutboxEvents() {
         List<OutboxEvent> events =
