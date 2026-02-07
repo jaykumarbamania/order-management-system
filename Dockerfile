@@ -15,6 +15,10 @@ RUN mvn clean package -DskipTests
 # Runtime stage
 FROM eclipse-temurin:21-jre
 WORKDIR /app
+
+RUN useradd -ms /bin/bash appuser
+USER appuser
+
 COPY --from=build /app/target/*.jar app.jar
 EXPOSE 8080
 ENTRYPOINT ["java","-jar","app.jar"]
@@ -27,3 +31,6 @@ ENTRYPOINT ["java","-jar","app.jar"]
 #
 #EXPOSE 8080
 #ENTRYPOINT ["java","-jar","app.jar"]
+
+
+#We use a multi-stage Docker build with Maven for dependency caching and a slim JRE runtime image. Runtime configuration like database credentials is injected via environment variables, making the image portable across local, EC2, and RDS environments.
