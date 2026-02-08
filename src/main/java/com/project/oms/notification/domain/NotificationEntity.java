@@ -1,11 +1,16 @@
 package com.project.oms.notification.domain;
 
 import jakarta.persistence.*;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+
 import java.time.Instant;
 import java.util.UUID;
 
 @Entity
 @Table(name = "notifications")
+@Builder
+@AllArgsConstructor
 public class NotificationEntity {
 
     @Id
