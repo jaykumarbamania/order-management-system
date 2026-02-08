@@ -4,8 +4,11 @@ import com.project.oms.common.events.EventEnvelope;
 import com.project.oms.common.exceptions.ResourceNotFoundException;
 import com.project.oms.common.vo.AggregateType;
 import com.project.oms.infrastructure.eventbus.DomainEventPublisher;
+import com.project.oms.infrastructure.eventbus.OutboxDomainEventPublisher;
 import com.project.oms.inventory.events.InventoryFailedEvent;
 import com.project.oms.inventory.events.InventoryReservedEvent;
+import com.project.oms.notification.domain.NotificationType;
+import com.project.oms.notification.events.NotificationRequestedEvent;
 import com.project.oms.order.domain.Order;
 import com.project.oms.order.domain.OrderStatus;
 import com.project.oms.order.events.OrderCancelledEvent;
@@ -34,6 +37,8 @@ public class OrderService {
 
     private final OrderRepository orderRepository;
     private final DomainEventPublisher eventPublisher;
+    private final OutboxDomainEventPublisher outboxPublisher;
+
 
     @Transactional
     public Order createOrder(UUID userId, BigDecimal totalAmount) {
@@ -113,6 +118,18 @@ public class OrderService {
 
         eventPublisher.publish(
                 EventEnvelope.of(AggregateType.ORDER,orderId,new OrderConfirmedEvent(orderId))
+        );
+
+        outboxPublisher.publish(
+                EventEnvelope.of(
+                        AggregateType.NOTIFICATION,
+                        orderId,
+                        new NotificationRequestedEvent(
+                                UUID.randomUUID(),
+                                orderId,
+                                order.getUserId().toString(),
+                                NotificationType.EMAIL.name(),
+                                "Your order " + orderId + " has been confirmed successfully"))
         );
 
     }

@@ -3,15 +3,15 @@ spring:
     name: order-management-system
 
 
-#  datasource:
-#    url: jdbc:postgresql://localhost:5432/oms
-#    username: postgres
-#    password: 161199
-
   datasource:
-    url: ${DB_URL}
-    username: ${DB_USERNAME}
-    password: ${DB_PASSWORD}
+    url: jdbc:postgresql://localhost:5432/oms
+    username: postgres
+    password: 161199
+
+#  datasource:
+#    url: ${DB_URL}
+#    username: ${DB_USERNAME}
+#    password: ${DB_PASSWORD}
 
   jpa:
     hibernate:

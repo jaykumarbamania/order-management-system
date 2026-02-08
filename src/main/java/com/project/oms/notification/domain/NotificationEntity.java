@@ -21,14 +21,16 @@ public class NotificationEntity {
     @Column(name = "user_id", nullable = false)
     private String userId;
 
-    @Column(nullable = false)
-    private String type;
+    @Enumerated(EnumType.STRING)
+    @Column(name = "type", nullable = false)
+    private NotificationType type;
 
     @Column(nullable = false, columnDefinition = "TEXT")
     private String message;
 
-    @Column(nullable = false)
-    private String status;
+    @Enumerated(EnumType.STRING)
+    @Column(name = "status", nullable = false)
+    private NotificationStatus status;
 
     @Column(name = "retry_count", nullable = false)
     private int retryCount;
@@ -45,9 +47,9 @@ public class NotificationEntity {
             UUID eventId,
             UUID orderId,
             String userId,
-            String type,
+            NotificationType type,
             String message,
-            String status
+            NotificationStatus status
     ) {
         this.eventId = eventId;
         this.orderId = orderId;
@@ -61,12 +63,12 @@ public class NotificationEntity {
     }
 
     public void markSent() {
-        this.status = "SENT";
+        this.status = NotificationStatus.SENT;
         this.updatedAt = Instant.now();
     }
 
     public void markFailed() {
-        this.status = "FAILED";
+        this.status = NotificationStatus.FAILED;
         this.retryCount++;
         this.updatedAt = Instant.now();
     }
