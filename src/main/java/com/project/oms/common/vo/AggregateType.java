@@ -4,5 +4,6 @@ public enum AggregateType {
 
     ORDER,
     PAYMENT,
-    INVENTORY
+    INVENTORY,
+    NOTIFICATION
 }
