@@ -3,6 +3,8 @@ package com.project.oms.notification.domain;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
+import lombok.Getter;
+import lombok.Setter;
 
 import java.time.Instant;
 import java.util.UUID;
@@ -11,6 +13,8 @@ import java.util.UUID;
 @Table(name = "notifications")
 @Builder
 @AllArgsConstructor
+@Getter
+@Setter
 public class NotificationEntity {
 
     @Id
