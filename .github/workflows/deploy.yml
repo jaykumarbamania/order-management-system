@@ -26,7 +26,7 @@ jobs:
         id: version
         run: |
           LATEST=$(aws ecr describe-images \
-            --repository-name $ECR_REPOSITORY \
+            --repository-name ${{ secrets.ECR_REPOSITORY }} \
             --query 'sort_by(imageDetails,& imagePushedAt)[-1].imageTags[0]' \
             --output text)
 
@@ -57,11 +57,11 @@ jobs:
 
       - name: Tag latest
         run: |
-          docker tag $ECR_REPOSITORY:$NEXT_VERSION \
-          $AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/$ECR_REPOSITORY:latest
+          docker tag ${{ secrets.ECR_REPOSITORY }}:$NEXT_VERSION \
+          $AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/${{ secrets.ECR_REPOSITORY }}:latest
       
           docker push \
-          $AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/$ECR_REPOSITORY:latest
+          $AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/${{ secrets.ECR_REPOSITORY }}:latest
 
       - name: Force ECS Deployment
         run: |
