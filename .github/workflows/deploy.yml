@@ -27,12 +27,12 @@ jobs:
         run: |
           LATEST=$(aws ecr describe-images \
             --repository-name ${{ secrets.ECR_REPOSITORY }} \
-            --query 'sort_by(imageDetails,& imagePushedAt)[-1].imageTags[0]' \
-            --output text)
+            --query 'imageDetails[].imageTags[]' \
+            --output text | tr '\t' '\n' | grep -E '^[0-9]+\.[0-9]+\.[0-9]+$' | sort -V | tail -n1)
 
-          echo "Latest version: $LATEST"
+          echo "Latest semantic version: $LATEST"
 
-          if [[ "$LATEST" == "None" ]]; then
+          if [[ -z "$LATEST" ]]; then
             NEXT_VERSION="1.0.1"
           else
             IFS='.' read -r MAJOR MINOR PATCH <<< "$LATEST"
@@ -58,10 +58,10 @@ jobs:
       - name: Tag latest
         run: |
           docker tag ${{ secrets.ECR_REPOSITORY }}:$NEXT_VERSION \
-          $AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/${{ secrets.ECR_REPOSITORY }}:latest
+          ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.ap-south-1.amazonaws.com/${{ secrets.ECR_REPOSITORY }}:latest
       
           docker push \
-          $AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/${{ secrets.ECR_REPOSITORY }}:latest
+          ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.ap-south-1.amazonaws.com/${{ secrets.ECR_REPOSITORY }}:latest
 
       - name: Force ECS Deployment
         run: |
