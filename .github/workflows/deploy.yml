@@ -62,10 +62,31 @@ jobs:
       
           docker push \
           ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.ap-south-1.amazonaws.com/${{ secrets.ECR_REPOSITORY }}:latest
+          
+      - name: Download current task definition
+        run: | 
+          aws ecs describe-task-definition \ --task-definition ${{ secrets.$ECS_TASK_DEFINITION }} \ 
+          --query taskDefinition \ > task-definition.json 
 
-      - name: Force ECS Deployment
-        run: |
-          aws ecs update-service \
-            --cluster ${{ secrets.ECS_CLUSTER }} \
-            --service ${{ secrets.ECS_SERVICE }} \
-            --force-new-deployment
+      - name: Update container image
+        uses: aws-actions/amazon-ecs-render-task-definition@v1
+        id: render-task
+        with:
+          task-definition: task-definition.json
+          container-name: ${{ secrets.CONTAINER_NAME }}
+          image: ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.ap-south-1.amazonaws.com/${{ secrets.ECR_REPOSITORY }}:latest
+
+      - name: Deploy ECS service
+        uses: aws-actions/amazon-ecs-deploy-task-definition@v1
+        with:
+          task-definition: ${{ steps.render-task.outputs.task-definition }}
+          service: ${{ secrets.ECS_SERVICE }}
+          cluster: ${{ secrets.ECS_CLUSTER }}
+          wait-for-service-stability: true
+
+#      - name: Force ECS Deployment
+#        run: |
+#          aws ecs update-service \
+#            --cluster ${{ secrets.ECS_CLUSTER }} \
+#            --service ${{ secrets.ECS_SERVICE }} \
+#            --force-new-deployment
