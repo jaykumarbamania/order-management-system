@@ -66,15 +66,28 @@ jobs:
       - name: Download current task definition
         run: |
           aws ecs describe-task-definition \
-            --task-definition ${{ secrets.ECS_TASK_DEFINITION }} \
+            --task-definition "${{ secrets.ECS_TASK_DEFINITION }}" \
             --query taskDefinition \
-            > task-definition.json
+            --output json > task-definition.json
+
+      - name: Clean task definition
+        run: |
+          cat task-definition.json | jq 'del(
+            .taskDefinitionArn,
+            .revision,
+            .status,
+            .requiresAttributes,
+            .compatibilities,
+            .registeredAt,
+            .registeredBy,
+            .enableFaultInjection
+          )' > cleaned-task-definition.json
 
       - name: Update container image
         uses: aws-actions/amazon-ecs-render-task-definition@v1
         id: render-task
         with:
-          task-definition: task-definition.json
+          task-definition: cleaned-task-definition.json
           container-name: ${{ secrets.CONTAINER_NAME }}
           image: ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.ap-south-1.amazonaws.com/${{ secrets.ECR_REPOSITORY }}:latest
 
