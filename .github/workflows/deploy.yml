@@ -44,7 +44,9 @@ jobs:
 
       - name: Build Docker image
         run: |
-          docker build -t ${{ secrets.ECR_REPOSITORY }}:$NEXT_VERSION .
+          docker build \
+          --build-arg APP_VERSION=$NEXT_VERSION \
+          -t ${{ secrets.ECR_REPOSITORY }}:$NEXT_VERSION .
 
       - name: Tag image
         run: |
@@ -89,7 +91,10 @@ jobs:
         with:
           task-definition: cleaned-task-definition.json
           container-name: ${{ secrets.CONTAINER_NAME }}
-          image: ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.ap-south-1.amazonaws.com/${{ secrets.ECR_REPOSITORY }}:latest
+          image: ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.ap-south-1.amazonaws.com/${{ secrets.ECR_REPOSITORY }}:$NEXT_VERSION
+
+      - name: Manifest Version
+        run: echo "Deploying version $NEXT_VERSION"
 
       - name: Deploy ECS service
         uses: aws-actions/amazon-ecs-deploy-task-definition@v1

@@ -2,6 +2,8 @@
 # Build stage
 
 FROM maven:3.9.9-eclipse-temurin-21 AS build
+ARG APP_VERSION
+ENV APP_VERSION=$APP_VERSION
 WORKDIR /app
 
 # copy pom first for dependency caching
