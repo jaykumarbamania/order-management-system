@@ -64,11 +64,11 @@ jobs:
           ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.ap-south-1.amazonaws.com/${{ secrets.ECR_REPOSITORY }}:latest
           
       - name: Download current task definition
-        run: | 
-          aws ecs describe-task-definition \ 
-          --task-definition ${{ secrets.ECS_TASK_DEFINITION }} \ 
-          --query taskDefinition \ 
-          > task-definition.json 
+        run: |
+          aws ecs describe-task-definition \
+            --task-definition ${{ secrets.ECS_TASK_DEFINITION }} \
+            --query taskDefinition \
+            > task-definition.json
 
       - name: Update container image
         uses: aws-actions/amazon-ecs-render-task-definition@v1
