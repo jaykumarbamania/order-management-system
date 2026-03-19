@@ -24,6 +24,6 @@ public class AppGeneralController {
 
     @GetMapping("/version")
     public String version() {
-        return "OMS App Version: " + version;
+        return "OMS App Version: " +  System.getenv("APP_VERSION");
     }
 }
