@@ -42,6 +42,7 @@ jobs:
 
           echo "NEXT_VERSION=$NEXT_VERSION" >> $GITHUB_ENV
 
+
       - name: Build Docker image
         run: |
           docker build \
@@ -85,16 +86,25 @@ jobs:
             .enableFaultInjection
           )' > cleaned-task-definition.json
 
+      - name: Set IMAGE URI
+        run: |
+          IMAGE_URI="${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.ap-south-1.amazonaws.com/${{ secrets.ECR_REPOSITORY }}:$NEXT_VERSION"
+          echo "IMAGE_URI=$IMAGE_URI" >> $GITHUB_ENV
+
       - name: Update container image
         uses: aws-actions/amazon-ecs-render-task-definition@v1
         id: render-task
         with:
           task-definition: cleaned-task-definition.json
           container-name: ${{ secrets.CONTAINER_NAME }}
-          image: ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.ap-south-1.amazonaws.com/${{ secrets.ECR_REPOSITORY }}:$NEXT_VERSION
+          image: ${{ env.IMAGE_URI }}
 
       - name: Manifest Version
         run: echo "Deploying version $NEXT_VERSION"
+
+      - name: Debug final image
+        run: |
+          echo "IMAGE_URI=[$IMAGE_URI]"
 
       - name: Deploy ECS service
         uses: aws-actions/amazon-ecs-deploy-task-definition@v1
