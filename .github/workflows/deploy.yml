@@ -99,7 +99,7 @@ jobs:
           container-name: ${{ secrets.CONTAINER_NAME }}
           image: ${{ env.IMAGE_URI }}
           environment-variables: |
-            APP_VERSION=$NEXT_VERSION
+            APP_VERSION=${{ env.NEXT_VERSION }}
 
       - name: Manifest Version
         run: echo "Deploying version $NEXT_VERSION"
