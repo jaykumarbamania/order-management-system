@@ -1,0 +1,124 @@
+name: Deploy to ECS
+
+on:
+  push:
+    branches: [ main ]
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ap-south-1
+
+      - name: Login to ECR
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Get latest version from ECR
+        id: version
+        run: |
+          LATEST=$(aws ecr describe-images \
+            --repository-name ${{ secrets.ECR_REPOSITORY }} \
+            --query 'imageDetails[].imageTags[]' \
+            --output text | tr '\t' '\n' | grep -E '^[0-9]+\.[0-9]+\.[0-9]+$' | sort -V | tail -n1)
+
+          echo "Latest semantic version: $LATEST"
+
+          if [[ -z "$LATEST" ]]; then
+            NEXT_VERSION="1.0.1"
+          else
+            IFS='.' read -r MAJOR MINOR PATCH <<< "$LATEST"
+            PATCH=$((PATCH+1))
+            NEXT_VERSION="$MAJOR.$MINOR.$PATCH"
+          fi
+
+          echo "NEXT_VERSION=$NEXT_VERSION" >> $GITHUB_ENV
+
+
+      - name: Build Docker image
+        run: |
+          docker build \
+          --build-arg APP_VERSION=$NEXT_VERSION \
+          -t ${{ secrets.ECR_REPOSITORY }}:$NEXT_VERSION .
+
+      - name: Tag image
+        run: |
+          docker tag ${{ secrets.ECR_REPOSITORY }}:$NEXT_VERSION \
+          ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.ap-south-1.amazonaws.com/${{ secrets.ECR_REPOSITORY }}:$NEXT_VERSION 
+
+      - name: Push image
+        run: |
+          docker push ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.ap-south-1.amazonaws.com/${{ secrets.ECR_REPOSITORY }}:$NEXT_VERSION
+
+      - name: Tag latest
+        run: |
+          docker tag ${{ secrets.ECR_REPOSITORY }}:$NEXT_VERSION \
+          ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.ap-south-1.amazonaws.com/${{ secrets.ECR_REPOSITORY }}:latest
+      
+          docker push \
+          ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.ap-south-1.amazonaws.com/${{ secrets.ECR_REPOSITORY }}:latest
+          
+      - name: Download current task definition
+        run: |
+          aws ecs describe-task-definition \
+            --task-definition "${{ secrets.ECS_TASK_DEFINITION }}" \
+            --query taskDefinition \
+            --output json > task-definition.json
+
+      - name: Clean task definition
+        run: |
+          cat task-definition.json | jq 'del(
+            .taskDefinitionArn,
+            .revision,
+            .status,
+            .requiresAttributes,
+            .compatibilities,
+            .registeredAt,
+            .registeredBy,
+            .enableFaultInjection
+          )' > cleaned-task-definition.json
+
+      - name: Set IMAGE URI
+        run: |
+          IMAGE_URI="${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.ap-south-1.amazonaws.com/${{ secrets.ECR_REPOSITORY }}:$NEXT_VERSION"
+          echo "IMAGE_URI=$IMAGE_URI" >> $GITHUB_ENV
+
+      - name: Update container image
+        uses: aws-actions/amazon-ecs-render-task-definition@v1
+        id: render-task
+        with:
+          task-definition: cleaned-task-definition.json
+          container-name: ${{ secrets.CONTAINER_NAME }}
+          image: ${{ env.IMAGE_URI }}
+          environment-variables: |
+            APP_VERSION=${{ env.NEXT_VERSION }}
+
+      - name: Manifest Version
+        run: echo "Deploying version $NEXT_VERSION"
+
+      - name: Debug final image
+        run: |
+          echo "IMAGE_URI=[$IMAGE_URI]"
+
+      - name: Deploy ECS service
+        uses: aws-actions/amazon-ecs-deploy-task-definition@v1
+        with:
+          task-definition: ${{ steps.render-task.outputs.task-definition }}
+          service: ${{ secrets.ECS_SERVICE }}
+          cluster: ${{ secrets.ECS_CLUSTER }}
+          wait-for-service-stability: true
+
+#      - name: Force ECS Deployment
+#        run: |
+#          aws ecs update-service \
+#            --cluster ${{ secrets.ECS_CLUSTER }} \
+#            --service ${{ secrets.ECS_SERVICE }} \
+#            --force-new-deployment
